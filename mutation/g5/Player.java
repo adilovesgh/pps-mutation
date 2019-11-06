@@ -16,13 +16,15 @@ public class Player extends mutation.sim.Player {
 	private int numMutations;
 	private List<Map<Character, Integer>> patternTracker = new ArrayList<>();
 	private List<Map<Character, Integer>> actionTracker = new ArrayList<>();
-	private static final int DISTANCE_THRESHOLD_SB = 4;
+	private static final int DISTANCE_THRESHOLD_SB = 12;
 	private static final double PERCENTAGE_DISTANCE_THRESHOLD_MB = 0.15; 
-	private static final int NONEXISTENT_BASE_THRESHOLD = 4;
+	private static final int NONEXISTENT_BASE_THRESHOLD = 20;
 	private static final double PERCENTAGE_MUTATION_SIZE_DELTA_THRESHOLD = 0.25;
 	private List<Integer> numMatchesForMutationSizes = new ArrayList<>();
+	private List<Mutagen> possibleMutagens = new ArrayList<>();
 	private List<String> genomes = new ArrayList<>();
 	private List<String> mutatedGenomes = new ArrayList<>();
+	private List<Integer> numMutationsList = new ArrayList<>();
 	private List<Mutagen> mutagensGuessed = new ArrayList<>();
 	private List<IntervalArchive> intervalArchives = new ArrayList<>();
 
@@ -40,108 +42,153 @@ public class Player extends mutation.sim.Player {
 
 	@Override
 	public Mutagen Play(Console console, int m) {
-		this.console = console;
-		setUpTrackers();
-//		String genome = "tgccacggtctgttttgcatgcacctagttcgttttctggggcgttagacagactatgttgcttcaccccgaaccccaaatttatacatttctgcagttcccgtttgaatgtgctaatcggtaacatctgccttgtgacgcagaaggtatcaagctggaatgccacacggacactcgagcgctgatctcccgggttggatgacagcagtagaaagttaagggattgcgatggggcagcaaagtgtgagcaatggttagattcgatttcgcgtcccatttgaatgcacggtgaacgttttcacttagcaccgttatgggtgggaagtgtaggattttggatgggctgcatagcagtcgacgtcaccgtaaaatggaccgccgctatatatcggagatttaacgagccctagagaatggggattataacctatgtcagtcatccatattagacgactcgacgcgagaacctgtgattataggaatccgaacgagttcaaatccaaaaggcggtccgctcaaggccgcctcggctcccagactgtctaaaacgcctgtccctacagtgtcttattatcgcgacgtcattagggatgggaaggtgtacaggcgaaattaccgtggtacacaataaatcataatcctaggtgagcagcgcattctatgtgagtaactaggtgtctaaggtgacggtattgctacggatagggttggtgcggacgatgtgagctagttagtacgcagattgcgaacatttcccggcttacacggctcgagtcgtctggccggtagggaattcttatgtggataaagccgacagtatgcagaaaggttgcattagaaataattggacgcgggttcggtatcgcctcggcgtaacaagagatttatgataatcgtgggtacaaaagcaggtgtcccgggtctgtattgcatggttattcagtcaccaagggctaatatgaatggttgacacgagcacggaaataccagcacagtttca";
-		int numBasesMutatedPerMutation = 0;
-		int totalNumMutations = 0;
-		for(int i = 0; i < 10; i++) {
-			String genome = randomString();
-			String mutatedGenome = console.Mutate(genome);
-			genomes.add(genome);
-			mutatedGenomes.add(mutatedGenome);
+		if(mutagensGuessed.size() == 0) {
+			this.console = console;
+			setUpStructures();
+			int numBasesMutatedPerMutation = 0;
+			int totalNumMutations = 0;
+			for(int i = 0; i < 100; i++) {
+//				String genome = "tgccacggtctgttttgcatgcacctagttcgttttctggggcgttagacagactatgttgcttcaccccgaaccccaaatttatacatttctgcagttcccgtttgaatgtgctaatcggtaacatctgccttgtgacgcagaaggtatcaagctggaatgccacacggacactcgagcgctgatctcccgggttggatgacagcagtagaaagttaagggattgcgatggggcagcaaagtgtgagcaatggttagattcgatttcgcgtcccatttgaatgcacggtgaacgttttcacttagcaccgttatgggtgggaagtgtaggattttggatgggctgcatagcagtcgacgtcaccgtaaaatggaccgccgctatatatcggagatttaacgagccctagagaatggggattataacctatgtcagtcatccatattagacgactcgacgcgagaacctgtgattataggaatccgaacgagttcaaatccaaaaggcggtccgctcaaggccgcctcggctcccagactgtctaaaacgcctgtccctacagtgtcttattatcgcgacgtcattagggatgggaaggtgtacaggcgaaattaccgtggtacacaataaatcataatcctaggtgagcagcgcattctatgtgagtaactaggtgtctaaggtgacggtattgctacggatagggttggtgcggacgatgtgagctagttagtacgcagattgcgaacatttcccggcttacacggctcgagtcgtctggccggtagggaattcttatgtggataaagccgacagtatgcagaaaggttgcattagaaataattggacgcgggttcggtatcgcctcggcgtaacaagagatttatgataatcgtgggtacaaaagcaggtgtcccgggtctgtattgcatggttattcagtcaccaagggctaatatgaatggttgacacgagcacggaaataccagcacagtttca";
+				String genome = randomString();
+				String mutatedGenome = console.Mutate(genome);
+				genomes.add(genome);
+				mutatedGenomes.add(mutatedGenome);
 
-			this.numMutations = console.getNumberOfMutations();
-			totalNumMutations += numMutations;
+				this.numMutations = console.getNumberOfMutations();
+				numMutationsList.add(numMutations);
+				totalNumMutations += numMutations;
 
-			int numBasesMutated = 0;
-			for(int j = 0; j < genome.length(); j++)
-				if(genome.charAt(j) != mutatedGenome.charAt(j))
-					numBasesMutated++;
+				int numBasesMutated = 0;
+				for(int j = 0; j < genome.length(); j++)
+					if(genome.charAt(j) != mutatedGenome.charAt(j))
+						numBasesMutated++;
 
-			int iterNumBasesMutatedPerMutation = (int) Math.ceil(numBasesMutated * 1.0 / numMutations);
-			computeWindowSizes(genome, mutatedGenome, iterNumBasesMutatedPerMutation);
-			
-			try {
-				Process process = Runtime.getRuntime().exec("python3 mutation/g5/Mutagen.py " + genome + " " + mutatedGenome + " " + numMutations);
-				process.waitFor();
-		    	InputStream is = process.getInputStream();
-				String line = "";
-		    	BufferedReader br = new BufferedReader(new InputStreamReader(is));
-				while((line = br.readLine()) != null) {
-//					System.out.println("Interval: " + line);
+				int iterNumBasesMutatedPerMutation = (int) Math.ceil(numBasesMutated * 1.0 / numMutations);
+				computeWindowSizes(genome, mutatedGenome, iterNumBasesMutatedPerMutation);
 
-					IntervalArchive intervalObj = new IntervalArchive();
-					intervalObj.genome = genome;
-					intervalObj.mutatedGenome = mutatedGenome;					
-					String intervalString = line.substring(1, line.length() - 1);
-					String[] intervalElements = intervalString.split(", ");
-					for(int j = 0; j < intervalElements.length; j += 2) {
-						int x = Integer.parseInt(intervalElements[j].substring(1));
-						int y = Integer.parseInt(intervalElements[j + 1].substring(0, intervalElements[j + 1].length() - 1));
-						intervalObj.hcIntervals.add(new Point(x, y));
+				try {
+					Process process = Runtime.getRuntime().exec("python3 mutation/g5/Mutagen.py " + genome + " " + mutatedGenome + " " + numMutations);
+					process.waitFor();
+					InputStream is = process.getInputStream();
+					String line = "";
+					BufferedReader br = new BufferedReader(new InputStreamReader(is));
+					while((line = br.readLine()) != null) {
+						//					System.out.println("Interval: " + line);
+
+						IntervalArchive intervalObj = new IntervalArchive();
+						intervalObj.genome = genome;
+						intervalObj.mutatedGenome = mutatedGenome;					
+						String intervalString = line.substring(1, line.length() - 1);
+						String[] intervalElements = intervalString.split(", ");
+						for(int j = 0; j < intervalElements.length; j += 2) {
+							int x = Integer.parseInt(intervalElements[j].substring(1));
+							int y = Integer.parseInt(intervalElements[j + 1].substring(0, intervalElements[j + 1].length() - 1));
+							intervalObj.hcIntervals.add(new Point(x, y));
+						}
+						intervalArchives.add(intervalObj);
 					}
-					intervalArchives.add(intervalObj);
+					br.close();
+					is.close();
+					process.destroy();
+				} catch (IOException | InterruptedException e) {
+//					e.printStackTrace();
 				}
-				br.close();
-				is.close();
-				process.destroy();
-			} catch (IOException | InterruptedException e) {
-//				e.printStackTrace();
+
+				numBasesMutatedPerMutation = (int) Math.max(numBasesMutatedPerMutation, iterNumBasesMutatedPerMutation);        	
 			}
+
+			int mostLikelyMutationSize = numBasesMutatedPerMutation;
+			if(mostLikelyMutationSize != 1) {
+				System.out.println("Total number of mutations: " + totalNumMutations);
+				int prevMutationSize = 0;
+				int currMutationSize = numMatchesForMutationSizes.get(0);
+				mostLikelyMutationSize = 1;
+				System.out.println("Number of matches of size 1: " + numMatchesForMutationSizes.get(0));
+				for(int i = 1; i < numMatchesForMutationSizes.size(); i++) {
+					prevMutationSize = currMutationSize;
+					currMutationSize = numMatchesForMutationSizes.get(i);
+					double percentDifference;
+					if(prevMutationSize == 0 && currMutationSize != 0)
+						percentDifference = Double.MAX_VALUE;
+					else if(prevMutationSize == 0 && currMutationSize == 0)
+						percentDifference = 0;
+					else
+						percentDifference = (currMutationSize - prevMutationSize) * 1.0 / prevMutationSize;
+
+					if(percentDifference < 0)
+						break;
+					if(percentDifference > PERCENTAGE_MUTATION_SIZE_DELTA_THRESHOLD)
+						mostLikelyMutationSize = i + 1;
+					System.out.println("Number of matches of size " + (i + 1) + ": " + numMatchesForMutationSizes.get(i));
+				}
+			}
+			System.out.println("Most likely mutation size: " + mostLikelyMutationSize);
 			
-			numBasesMutatedPerMutation = (int) Math.max(numBasesMutatedPerMutation, iterNumBasesMutatedPerMutation);        	
+			List<Integer> mutationSizeOrder = new ArrayList<>();
+			mutationSizeOrder.add(mostLikelyMutationSize);
+			if(mostLikelyMutationSize > 1)
+				mutationSizeOrder.add(mostLikelyMutationSize - 1);
+			if(mostLikelyMutationSize < 10)
+				mutationSizeOrder.add(mostLikelyMutationSize + 1);
+			for(int i = 1; i <= 10; i++)
+				if(!mutationSizeOrder.contains(i))
+					mutationSizeOrder.add(i);
+			
+			for(int i = 0; i < 10; i++) {				
+				int mutationSizeChosen = mutationSizeOrder.get(i);
+				System.out.println("Mutation size: " + mutationSizeChosen);
+				setUpTrackers();
+				implementTrackers(mutationSizeChosen);
+
+				System.out.println("Action tracker: ");
+				for(int j = 0; j < actionTracker.size(); j++)
+					System.out.println("  " + j + ". " + actionTracker.get(j));
+				System.out.println("Pattern tracker: ");
+				for(int j = 0; j < patternTracker.size(); j++)
+					System.out.println("  " + j + ". " + patternTracker.get(j));
+				System.out.println();
+
+				List<Mutagen> possibleMutagens = getPossibleMutagens(mutationSizeChosen);
+				this.possibleMutagens.addAll(possibleMutagens);
+				for(Mutagen mutagen : possibleMutagens) {
+					if(console.Guess(mutagen))
+						return mutagen;
+				}
+			}
 		}
 		
-		int mostLikelyMutationSize = numBasesMutatedPerMutation;
-		if(mostLikelyMutationSize != 1) {
-			System.out.println("Total number of mutations: " + totalNumMutations);
-			int prevMutationSize = 0;
-			int currMutationSize = numMatchesForMutationSizes.get(0);
-			mostLikelyMutationSize = 1;
-			System.out.println("Number of matches of size 1: " + numMatchesForMutationSizes.get(0));
-			for(int i = 1; i < numMatchesForMutationSizes.size(); i++) {
-				prevMutationSize = currMutationSize;
-				currMutationSize = numMatchesForMutationSizes.get(i);
-				double percentDifference;
-				if(prevMutationSize == 0 && currMutationSize != 0)
-					percentDifference = Double.MAX_VALUE;
-				else if(prevMutationSize == 0 && currMutationSize == 0)
-					percentDifference = 0;
-				else
-					percentDifference = (currMutationSize - prevMutationSize) * 1.0 / prevMutationSize;
+//		List<Mutagen> approach2Mutagens = new ArrayList<>();
+//		try {			
+//			String genomesString = genomes.toString();
+//			genomesString = genomesString.replace(" ", "");
+//			String mutatedGenomesString = mutatedGenomes.toString();
+//			mutatedGenomesString = mutatedGenomesString.replace(" ", "");
+//			String numMutationsListString = numMutationsList.toString();
+//			numMutationsListString = numMutationsListString.replace(" ", "");
+//			Process process2 = Runtime.getRuntime().exec("python3 mutation/g5/newapproach.py " + genomesString + " " + mutatedGenomesString + " " + numMutationsListString);
+//			process2.waitFor();
+//			InputStream is2 = process2.getInputStream();
+//			BufferedReader br2 = new BufferedReader(new InputStreamReader(is2));
+////			String mutagenSetString = br2.readLine();
+////			System.out.println(mutagenSetString);
+////			if(mutagenSetString.startsWith(prefix))
+//			String l = "";
+//			while((l = br2.readLine()) != null)
+//				System.out.println(l);
+//			br2.close();
+//			is2.close();
+//			process2.destroy();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 
-				if(percentDifference < 0)
-					break;
-				if(percentDifference > PERCENTAGE_MUTATION_SIZE_DELTA_THRESHOLD)
-					mostLikelyMutationSize = i + 1;
-				System.out.println("Number of matches of size " + (i + 1) + ": " + numMatchesForMutationSizes.get(i));
-			}			
-		}
-		System.out.println("Most likely mutation size: " + mostLikelyMutationSize);
-		implementTrackers(mostLikelyMutationSize);
-
-		System.out.println("Action tracker: ");
-		for(int i = 0; i < actionTracker.size(); i++)
-			System.out.println("  " + i + ". " + actionTracker.get(i));
-		System.out.println("Pattern tracker: ");
-		for(int i = 0; i < patternTracker.size(); i++)
-			System.out.println("  " + i + ". " + patternTracker.get(i));
-		System.out.println();
-		
-		List<Mutagen> possibleMutagens = getPossibleMutagens(mostLikelyMutationSize);
-		for(Mutagen mutagen : possibleMutagens) {
-			if(console.Guess(mutagen))
-				return mutagen;
-		}
-
-		for(Mutagen mutagen : possibleMutagens) {
+		for(Mutagen mutagen : this.possibleMutagens) {
 			if(!mutagensGuessed.contains(mutagen)) {
 				mutagensGuessed.add(mutagen);
 				return mutagen;
 			}
 		}
-
+		
 		Mutagen mutagen = new Mutagen();
 		mutagen.add("a;c;c", "att");
 		mutagen.add("g;c;c", "gtt");
@@ -262,13 +309,25 @@ public class Player extends mutation.sim.Player {
 				for(int j = 0; j < offsetForBaseMutationInAction + i; j++)
 					action += Integer.toString(j);
 				action += letterMutation;
+				
+				String[] patternElements = newPattern.split(";");
+				if(patternElements.length > 10) {
+					newPattern = patternElements[patternElements.length - 10];
+					for(int abc = patternElements.length - 9; abc <= patternElements.length - 1; abc++) {
+						newPattern += ";" + patternElements[abc];
+					}
+				}
+				if(action.length() > 10)
+					action = action.substring(action.length() - 10, action.length());
+				
+				System.out.println("Pattern: " + newPattern + ", action: " + action);
 
-				System.out.println("Predicted pattern: " + newPattern);
-				System.out.println("Predicted action: " + action);
-				System.out.println("Predicted mutated base: " + letterMutation);
-				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
-				System.out.println("Predicted rule: " + newPattern + "@" + action);
-				System.out.println();
+				//				System.out.println("Predicted pattern: " + newPattern);
+				//				System.out.println("Predicted action: " + action);
+				//				System.out.println("Predicted mutated base: " + letterMutation);
+				//				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
+				//				System.out.println("Predicted rule: " + newPattern + "@" + action);
+				//				System.out.println();
 
 				Mutagen mutagen = new Mutagen();
 				mutagen.add(newPattern, action);
@@ -318,6 +377,7 @@ public class Player extends mutation.sim.Player {
 				currentLocation++;
 			}
 		}
+		
 		/*
 		 * Determine action
 		 */
@@ -328,7 +388,7 @@ public class Player extends mutation.sim.Player {
 				if(locationForAction < locationForFirstPattern)
 					for(int j = 0; j < locationForFirstPattern - locationForAction; j++)
 						intermediatePattern = "actg;" + intermediatePattern;
-
+			
 			int indexOfFirstInterestingPattern = 0;
 			if(!firstPatternFound)
 				locationForFirstPattern = locationForAction;
@@ -348,22 +408,36 @@ public class Player extends mutation.sim.Player {
 				if(newPattern.length() != 4 || newPattern.contains(";"))
 					for(int k = 0; k < j; k++)
 						newPattern = "actg;" + newPattern;
-
+				
 				String action = "";
 				for(int k = 0; k < offsetForBaseMutationInAction + j; k++) {
 					action += Integer.toString(k);
 				}					
 				action += Integer.toString(numberMutation + j);
 
-				System.out.println("Predicted pattern: " + newPattern);
-				System.out.println("Predicted action: " + action);
-				System.out.println("Predicted number mutation: " + numberMutation);
-				System.out.println("Location of action: " + locationForAction);
-				System.out.println("Index of first interesting pattern: " + indexOfFirstInterestingPattern);
-				System.out.println("Location for first interesting pattern: " + locationForFirstPattern);
-				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
-				System.out.println("Predicted rule: " + newPattern + "@" + action);
+				String[] patternElements = newPattern.split(";");
+				if(patternElements.length > 10) {
+					newPattern = patternElements[patternElements.length - 10];
+					for(int abc = patternElements.length - 9; abc <= patternElements.length - 1; abc++) {
+						newPattern += ";" + patternElements[abc];
+					}
+				}
+				if(action.length() > 10)
+					action = action.substring(action.length() - 10, action.length());
+				
+				System.out.println("Pattern: " + newPattern + ", action: " + action);
 				System.out.println();
+				
+				
+				//				System.out.println("Predicted pattern: " + newPattern);
+				//				System.out.println("Predicted action: " + action);
+				//				System.out.println("Predicted number mutation: " + numberMutation);
+				//				System.out.println("Location of action: " + locationForAction);
+				//				System.out.println("Index of first interesting pattern: " + indexOfFirstInterestingPattern);
+				//				System.out.println("Location for first interesting pattern: " + locationForFirstPattern);
+				//				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
+				//				System.out.println("Predicted rule: " + newPattern + "@" + action);
+				//				System.out.println();
 
 				Mutagen mutagen = new Mutagen();
 				mutagen.add(newPattern, action);
@@ -385,10 +459,10 @@ public class Player extends mutation.sim.Player {
 					newMutagen.add(newMutagenPattern, mutagen.getActions().get(0));
 					newMutagens.add(newMutagen);
 
-					System.out.println("Predicted pattern: " + newMutagenPattern);
-					System.out.println("Predicted action: " + mutagen.getActions().get(0));
-					System.out.println("Predicted rule: " + newMutagenPattern + "@" + mutagen.getActions().get(0));
-					System.out.println();
+					//					System.out.println("Predicted pattern: " + newMutagenPattern);
+					//					System.out.println("Predicted action: " + mutagen.getActions().get(0));
+					//					System.out.println("Predicted rule: " + newMutagenPattern + "@" + mutagen.getActions().get(0));
+					//					System.out.println();
 				}
 				else
 					break;
@@ -404,7 +478,7 @@ public class Player extends mutation.sim.Player {
 		for(int i = 0; i < patternTracker.size(); i++) {
 			Map<Character, Integer> patternOccurrences = patternTracker.get(i);
 			List<String> interestingPattern = new ArrayList<>();
-			
+
 			String letter = "";
 			if(!(letter = getLetterMutationForMultipleBases(patternOccurrences) + "").equals("x"))
 				interestingPattern.add(letter);
@@ -414,11 +488,11 @@ public class Player extends mutation.sim.Player {
 						interestingPattern.add(character + "");
 				}
 			}
-			
+
 			if(interestingPattern.size() != 4)
 				interestingPatternsMap.put(i, interestingPattern);
 		}
-		
+
 		/*
 		 * Determine pattern
 		 */
@@ -456,7 +530,15 @@ public class Player extends mutation.sim.Player {
 				currentLocation++;
 			}
 		}
-
+		
+		String[] patternElements = pattern.split(";");
+		if(patternElements.length > 10) {
+			pattern = patternElements[patternElements.length - 10];
+			for(int abc = patternElements.length - 9; abc <= patternElements.length - 1; abc++) {
+				pattern += ";" + patternElements[abc];
+			}
+		}
+		
 		System.out.println("Pattern: " + pattern);
 		System.out.println();
 
@@ -480,7 +562,7 @@ public class Player extends mutation.sim.Player {
 					if(isValidLocationForAction)
 						possibleLocationsForAction.add(i);
 				}
-	
+
 
 				/*
 				 * Add action element
@@ -494,26 +576,26 @@ public class Player extends mutation.sim.Player {
 				}
 				else
 					actionElementsToAdd.get(xyz).add(letterMutation + "");
-	
-				System.out.println("Action: " + xyz);
-				System.out.println("Location for first pattern: " + locationForFirstPattern);
-				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
-				System.out.println("Letter mutation: " + letterMutation);
-				System.out.println();
+
+				//				System.out.println("Action: " + xyz);
+				//				System.out.println("Location for first pattern: " + locationForFirstPattern);
+				//				System.out.println("Offset for base mutation in action: " + offsetForBaseMutationInAction);
+				//				System.out.println("Letter mutation: " + letterMutation);
+				//				System.out.println();
 
 			}
-	
+
 			// Either the mutation is numerical, or the mutation could be either base or numerical
-//			for(int i = 0; i < patternTracker.size(); i++) {
-//				Map<Character, Integer> patternOccurrences = patternTracker.get(i);
-//				double distance = getDistance(actionOccurrences, patternOccurrences);
-//				int totalOccurrences = 0;
-//				for(Character character : patternOccurrences.keySet())
-//					totalOccurrences += patternOccurrences.get(character);
-//				double distancePercentage = distance / totalOccurrences;
-//				if(distancePercentage <= PERCENTAGE_DISTANCE_THRESHOLD_MB)
-//					possibleLocationsForAction.add(i);
-//			}
+			//			for(int i = 0; i < patternTracker.size(); i++) {
+			//				Map<Character, Integer> patternOccurrences = patternTracker.get(i);
+			//				double distance = getDistance(actionOccurrences, patternOccurrences);
+			//				int totalOccurrences = 0;
+			//				for(Character character : patternOccurrences.keySet())
+			//					totalOccurrences += patternOccurrences.get(character);
+			//				double distancePercentage = distance / totalOccurrences;
+			//				if(distancePercentage <= PERCENTAGE_DISTANCE_THRESHOLD_MB)
+			//					possibleLocationsForAction.add(i);
+			//			}
 			double minDistance = Double.MAX_VALUE;
 			double secondMinDistance = Double.MAX_VALUE;
 			double thirdMinDistance = Double.MAX_VALUE;
@@ -544,8 +626,8 @@ public class Player extends mutation.sim.Player {
 			}
 			possibleLocationsForAction.add(patternInWindowMin);
 			possibleLocationsForAction.add(patternInWindowSecondMin);
-//			possibleLocationsForAction.add(patternInWindowThirdMin);
-	
+			//			possibleLocationsForAction.add(patternInWindowThirdMin);
+
 			/*
 			 * Add action element
 			 */
@@ -556,7 +638,7 @@ public class Player extends mutation.sim.Player {
 					if(locationForAction < locationForFirstPattern)
 						for(int j = 0; j < locationForFirstPattern - locationForAction; j++)
 							intermediatePattern = "actg;" + intermediatePattern;
-	
+
 				int indexOfFirstInterestingPattern = 0;
 				if(!firstPatternFound)
 					locationForFirstPattern = locationForAction;
@@ -567,13 +649,13 @@ public class Player extends mutation.sim.Player {
 				int offsetForNumberMutationInAction = (9 + 1 - mutationSize) + indexOfFirstInterestingPattern - locationForFirstPattern;
 				int numberMutation = offsetForNumberMutationInAction + locationForAction - (9 + 1 - mutationSize);
 
-				System.out.println("Action: " + xyz);
-				System.out.println("Possible location for action: " + locationForAction);
-				System.out.println("Index of first interesting pattern: " + indexOfFirstInterestingPattern);
-				System.out.println("Location for first pattern: " + locationForFirstPattern);
-				System.out.println("Offset for number mutation in action: " + offsetForNumberMutationInAction);
-				System.out.println("Number mutation: " + numberMutation);
-				System.out.println();
+				//				System.out.println("Action: " + xyz);
+				//				System.out.println("Possible location for action: " + locationForAction);
+				//				System.out.println("Index of first interesting pattern: " + indexOfFirstInterestingPattern);
+				//				System.out.println("Location for first pattern: " + locationForFirstPattern);
+				//				System.out.println("Offset for number mutation in action: " + offsetForNumberMutationInAction);
+				//				System.out.println("Number mutation: " + numberMutation);
+				//				System.out.println();
 
 				if(!actionElementsToAdd.get(xyz).contains(Integer.toString(numberMutation)) && numberMutation <= 9 && numberMutation >= 0) {
 					if(xyz == 0) {
@@ -591,7 +673,7 @@ public class Player extends mutation.sim.Player {
 		}
 		List<String> actionStrings = new ArrayList<>();
 		getActionStringsForMultipleBases(actionElementsToAdd, actionStrings, "", 0);
-		System.out.println(actionElementsToAdd);
+		//		System.out.println(actionElementsToAdd);
 		for(String action : actionStrings) {
 			Mutagen mutagen = new Mutagen();
 			mutagen.add(pattern, action);
@@ -612,10 +694,10 @@ public class Player extends mutation.sim.Player {
 					newMutagen.add(newMutagenPattern, mutagen.getActions().get(0));
 					newMutagens.add(newMutagen);
 
-					System.out.println("Predicted pattern: " + newMutagenPattern);
-					System.out.println("Predicted action: " + mutagen.getActions().get(0));
-					System.out.println("Predicted rule: " + newMutagenPattern + "@" + mutagen.getActions().get(0));
-					System.out.println();
+					//					System.out.println("Predicted pattern: " + newMutagenPattern);
+					//					System.out.println("Predicted action: " + mutagen.getActions().get(0));
+					//					System.out.println("Predicted rule: " + newMutagenPattern + "@" + mutagen.getActions().get(0));
+					//					System.out.println();
 				}
 				else
 					break;
@@ -632,7 +714,7 @@ public class Player extends mutation.sim.Player {
 			distance += Math.pow(set1.get(character) - set2.get(character), 2);
 		return Math.sqrt(distance);
 	}
-	
+
 	private void getActionStringsForMultipleBases(List<List<String>> actionElementsToAdd, List<String> actionStrings, String currString, int listNum) {
 		for(int i = 0; i < actionElementsToAdd.get(listNum).size(); i++) {
 			if(listNum == actionElementsToAdd.size() - 1)
@@ -645,15 +727,19 @@ public class Player extends mutation.sim.Player {
 		}
 	}
 
-	private void setUpTrackers() {
-		patternTracker = new ArrayList<>();
-		actionTracker = new ArrayList<>();
+	private void setUpStructures() {
 		numMatchesForMutationSizes = new ArrayList<>();
 		for(int i = 0; i < 10; i++)
 			numMatchesForMutationSizes.add(0);
 		genomes = new ArrayList<>();
 		mutatedGenomes = new ArrayList<>();
 		intervalArchives = new ArrayList<>();
+		possibleMutagens = new ArrayList<>();
+	}
+	
+	private void setUpTrackers() {
+		patternTracker = new ArrayList<>();
+		actionTracker = new ArrayList<>();
 
 		for(int i = 0; i < 19; i++) {
 			Map<Character, Integer> occurrences = new HashMap<>();
@@ -688,7 +774,7 @@ public class Player extends mutation.sim.Player {
 			return 't';
 		return 'x';
 	}
-	
+
 	private Character getLetterMutationForMultipleBases(Map<Character, Integer> occurrences) {
 		int numAs = occurrences.get('a');
 		int numCs = occurrences.get('c');
@@ -708,12 +794,12 @@ public class Player extends mutation.sim.Player {
 	private void implementTrackers(int mutationSize) {
 		for(IntervalArchive intervalObj : intervalArchives) {
 			List<Window> windows = createWindows(intervalObj, mutationSize);
-//			System.out.println("Number of windows: " + windows.size());
-//			for(int i = 0; i < windows.size(); i++) {
-//				System.out.println("Window " + (i + 1));
-//				Window window = windows.get(i);
-//				window.print();
-//			}
+			//			System.out.println("Number of windows: " + windows.size());
+			//			for(int i = 0; i < windows.size(); i++) {
+			//				System.out.println("Window " + (i + 1));
+			//				Window window = windows.get(i);
+			//				window.print();
+			//			}
 
 			for(Window window : windows) {
 				int start = window.windowCoordinates.x;
@@ -747,7 +833,7 @@ public class Player extends mutation.sim.Player {
 		String genome = intervalObj.genome;
 		String mutatedGenome = intervalObj.mutatedGenome;
 		List<Point> hcIntervals = intervalObj.hcIntervals;
-		
+
 		List<Window> windows = new ArrayList<>();
 		if(mutationSize == 1) {
 			for(Point hcInterval : hcIntervals) {
@@ -768,11 +854,11 @@ public class Player extends mutation.sim.Player {
 			for(int i = 0; i < hcIntervals.size(); i++)
 				if((hcIntervals.get(i).y + 1 - hcIntervals.get(i).x) == mutationSize)
 					newIntervals.add(hcIntervals.get(i));
-			
+
 			List<Point> cyclicIntervals = new ArrayList<>(hcIntervals);
 			for(int i = 0; i < hcIntervals.size() - 1; i++)
 				cyclicIntervals.add(hcIntervals.get(i));
-			
+
 			for(int i = 0; i < hcIntervals.size(); i++) {
 				for(int j = 1; j < hcIntervals.size(); j++) {
 					int size1 = cyclicIntervals.get(i + j).y + 1 - cyclicIntervals.get(i).x;
@@ -782,11 +868,11 @@ public class Player extends mutation.sim.Player {
 						newIntervals.add(point);
 				}
 			}
-			System.out.println("*******************************************");
-			System.out.println("HC Intervals: " + hcIntervals);
-			System.out.println();
-			System.out.println("New Intervals: " + newIntervals);
-			System.out.println("*******************************************");
+			//			System.out.println("*******************************************");
+			//			System.out.println("HC Intervals: " + hcIntervals);
+			//			System.out.println();
+			//			System.out.println("New Intervals: " + newIntervals);
+			//			System.out.println("*******************************************");
 
 			for(Point newInterval : newIntervals) {
 				int i = newInterval.x;
@@ -805,7 +891,7 @@ public class Player extends mutation.sim.Player {
 				List<Character> mutatedBases = new ArrayList<>();
 				for(int k = 0; k < mutatedSubstring.length(); k++)
 					mutatedBases.add(mutatedSubstring.charAt(k));
-				
+
 				Window window = new Window();
 				window.originalBases = originalBases;
 				window.mutatedBases = mutatedBases;
@@ -815,8 +901,8 @@ public class Player extends mutation.sim.Player {
 							i - (10 - mutationSize);
 						window.windowCoordinates.y = i > genome.length() - 10 ? 9 - (genome.length() - i) : i + 9;
 						windows.add(window);
-				window.print();
-				System.out.println();
+						//				window.print();
+						//				System.out.println();
 			}
 		}
 
@@ -866,26 +952,26 @@ public class Player extends mutation.sim.Player {
 		public int baseLocation;
 		public Point windowCoordinates = new Point();
 		public List<Window> overlappingWindows = new ArrayList<>();
-		
+
 		public void print() {
-//			System.out.println("(1) Original base: " + originalBase);
-//			System.out.println("(2) Mutated base: " + mutatedBase);
+			//			System.out.println("(1) Original base: " + originalBase);
+			//			System.out.println("(2) Mutated base: " + mutatedBase);
 			System.out.println("(3) Original bases: " + originalBases);
 			System.out.println("(4) Mutated bases: " + mutatedBases);
 			System.out.println("(5) Base location: " + baseLocation);
 			System.out.println("(6) Window coordinates: (" + windowCoordinates.x + ", " + windowCoordinates.y + ")");
-//			System.out.println("(7) Number of overlapping windows: " + overlappingWindows.size());
+			//			System.out.println("(7) Number of overlapping windows: " + overlappingWindows.size());
 		}
 	}
-	
+
 	class IntervalArchive {
 		public String genome;
 		public String mutatedGenome;
 		public List<Point> hcIntervals = new ArrayList<>();
-		
+
 		public void print() {
-//			System.out.println("(1) Genome: " + genome);
-//			System.out.println("(2) Mutated genome: " + mutatedGenome);
+			//			System.out.println("(1) Genome: " + genome);
+			//			System.out.println("(2) Mutated genome: " + mutatedGenome);
 			System.out.println("(3) Intervals: " + hcIntervals);
 		}
 	}
