@@ -388,7 +388,7 @@ numMutationsList = (sys.argv[3]).strip('][').split(',')
 # mute.add('t;a;g', '9123456780')
 # m = 10
 
-for experiment in range(10):
+for experiment in range(100):
     genome = genomes[experiment]
     result = mutatedGenomes[experiment]
     mp = int(numMutationsList[experiment])

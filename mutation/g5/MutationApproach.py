@@ -1,11 +1,10 @@
-# %%
+import sys
 import os
 import glob
 import math
 import random
 from typing import *
 
-# %%
 class Mutagen:
     def __init__(self, patterns:List[str]=None, actions:List[str]=None):
         self.patterns = patterns or []
@@ -101,7 +100,6 @@ class Mutagen:
     def translate(c:str) -> int:
         return {'a':0, 'c':1, 'g':2, 't':3}.get(c, -1)
 
-# %%
 def visualize_change(genome, mutated):
     for idx, (c1, c2) in enumerate(zip(genome, mutated)):
         print(c1 if c1==c2 else f"\x1b[31m{c1}\x1b[0m", end='')
@@ -142,7 +140,6 @@ def action_potential(action):
     for ch in action: prod *= len(ch)
     return prod
 
-
 def find_intervals(genome, result, mp):
     if mp == 0: return []
     
@@ -165,7 +162,6 @@ def find_intervals(genome, result, mp):
     intervals.append((startidx, curidx))
     return intervals
 
-# %%
 def hack_action(enumidxes, ch):
     if isinstance(ch, str) and len(ch)==1:
         return set(enumidxes[ch])
@@ -184,7 +180,6 @@ def get_action(before, after):
     
     return [hack_action(enumidxes, ch) for ch in after]
 
-# %%
 def get_offset(idx1, idx2):
     offset = None
     
@@ -260,7 +255,6 @@ def reduce_hypothesis(actionlist):
         
     return newactionlist
 
-# %%
 mask = {'a':0, 'c':1, 'g':2, 't':3}
 
 def get_pattern(before):
@@ -304,7 +298,6 @@ def union_pattern(pattern1, pattern2):
         pattern.append((counts, string))
     return pattern
 
-# %%
 def produce_guess(actionlist):
     results = set()
 
@@ -348,7 +341,6 @@ def produce_guess(actionlist):
     # print("DEBUG : ", len(pattern_strings), len(action_strings))
     return results
 
-# %%
 def new_approach_one(genome, result, exp, start):
     l = len(genome)
     
@@ -362,7 +354,6 @@ def new_approach_one(genome, result, exp, start):
     
     return possible_hypothesis
 
-# %%
 def new_approach_two(genome, result, exp, start):
     l = len(genome)
     
@@ -467,7 +458,6 @@ def new_approach_two(genome, result, exp, start):
 
     return separate_actions + combined_actions
 
-# %%
 def parse_experiment_results(before, after, num_mutations, actionlist, exp, start):
     # print(f"PARSING [{before}=>{after}] {num_mutations}")
     
@@ -516,12 +506,10 @@ def parse_experiment_results(before, after, num_mutations, actionlist, exp, star
 
     return reduce_hypothesis(possible_actions)
 
-# %%
 '''
 # New testing function
 '''
 
-# %%
 def recursive(genome, result, actionlist, num_left, num_mutations, experiment, intervals):
     if not intervals:
         return actionlist
@@ -552,17 +540,24 @@ def recursive(genome, result, actionlist, num_left, num_mutations, experiment, i
 
     return onelist + twolist
 
-# %%
-def solve(mutagen, solution, num_experiments=10):
+genomes = (sys.argv[1]).strip('][').split(',')
+mutatedGenomes = (sys.argv[2]).strip('][').split(',')
+numMutationsList = (sys.argv[3]).strip('][').split(',')
+
+# def solve(mutagen, solution, num_experiments=10):
+def solve():
     memory = []
     actionlist = None
-    print("Solution = ", solution)
+    # print("Solution = ", solution)
 
     actionlist_history = []
-    for experiment in range(num_experiments):
-        genome = generate_random_genome()
-        result = mutagen.mutate(genome, m)
-        mp = mute.getNumberOfMutations()
+    for experiment in range(len(numMutationsList)):
+        # genome = generate_random_genome()
+        # result = mutagen.mutate(genome, m)
+        # mp = mute.getNumberOfMutations()
+        genome = genomes[experiment]
+        result = mutatedGenomes[experiment]
+        mp = int(numMutationsList[experiment])
 
         # Rotate if necessary
         diffs = [idx for idx, (c1, c2) in enumerate(zip(genome, result)) if c1 != c2]
@@ -586,53 +581,52 @@ def solve(mutagen, solution, num_experiments=10):
         if len(actionlist) == 0 or len(actionlist) > 1000:
             actionlist = None
 
-        if actionlist is not None:
-            guess = produce_guess(actionlist)
-            print(f"Experiment {experiment+1}. |Hypothesis| ={len(actionlist):3d}. GUESS = {guess}")
+        # if actionlist is not None:
+            # guess = produce_guess(actionlist)
+            # print(f"Experiment {experiment+1}. |Hypothesis| ={len(actionlist):3d}. GUESS = {guess}")
             
-            if len(guess) < 5 and solution in guess:
-                print(f"SOLVED in experiment {experiment+1}")
-                break
+            # if len(guess) < 5 and solution in guess:
+                # print(f"SOLVED in experiment {experiment+1}")
+                # break
         
         actionlist_history.append(actionlist)
     return actionlist_history, memory
 
-# %%
 '''
 # Main test
 '''
 
-# %%
-mute = Mutagen()
-mute.add('ct', 'tg')
+# mute = Mutagen()
+# mute.add('ct', 'tg')
 
-actionlist_history, memory = solve(mute, mute.getPatternActionPairs()[0], 20)
+# actionlist_history, memory = solve(mute, mute.getPatternActionPairs()[0], 20)
 
-# %%
-rules = [
-    ['a', 't'], ['act', 'g'], ['ac;a', 'ta'], ['ag;ag', 'c'], ['agt;a', 'ca'],
-    ['tc', 'ag'], ['tc', 'ac'], ['a', 'gg'], ['a;g', 'tc'], ['atc;atc', 'gg'],
-    ['tc', 'tg'], ['atcg', 'ag'], ['a', '1'], ['a', 'aa'], ['ag', '2'], ['tc', '9'],
-    ['actg', '00'], ['actg;actg;actg;act', '0120'], ['ctg;actg;ctg', '02'],
-    ['ctg;actg;ctg', '09'], ['ag', '90'], ['at', '34'], ['at;cg', '10'],
-    ['at;ac', '10'], ['at;at', '10'], ['actg', '01274563'], ['a', '123'],
-    ['ac', '123'], ['act', '123'], ['actg', '123'], ['a', '396'], ['tc', '396'],
-    ['ctg', '396'], ['act;actg;agt', '123'], ['act;actg;agt', '789'], ['act;actg;agt', '396'],
-    ['actg;act;actg;actg;act', '34021'], ['a', '0a'], ['a;c', '012c'], ['t', 't1234a'],
-    ['t', '01234a'], ['t', 'a2'], ['tc;ag', 'a0'], ['a;c', '01cc'], ['ac', 'a0'], ['a', 't21'],
-    ['a;t;c', '9at'], ['actg;ac;actg;actg;actg;ct', '2a134'], ['actg;ac', '2a134']]
+# rules = [
+#     ['a', 't'], ['act', 'g'], ['ac;a', 'ta'], ['ag;ag', 'c'], ['agt;a', 'ca'],
+#     ['tc', 'ag'], ['tc', 'ac'], ['a', 'gg'], ['a;g', 'tc'], ['atc;atc', 'gg'],
+#     ['tc', 'tg'], ['atcg', 'ag'], ['a', '1'], ['a', 'aa'], ['ag', '2'], ['tc', '9'],
+#     ['actg', '00'], ['actg;actg;actg;act', '0120'], ['ctg;actg;ctg', '02'],
+#     ['ctg;actg;ctg', '09'], ['ag', '90'], ['at', '34'], ['at;cg', '10'],
+#     ['at;ac', '10'], ['at;at', '10'], ['actg', '01274563'], ['a', '123'],
+#     ['ac', '123'], ['act', '123'], ['actg', '123'], ['a', '396'], ['tc', '396'],
+#     ['ctg', '396'], ['act;actg;agt', '123'], ['act;actg;agt', '789'], ['act;actg;agt', '396'],
+#     ['actg;act;actg;actg;act', '34021'], ['a', '0a'], ['a;c', '012c'], ['t', 't1234a'],
+#     ['t', '01234a'], ['t', 'a2'], ['tc;ag', 'a0'], ['a;c', '01cc'], ['ac', 'a0'], ['a', 't21'],
+#     ['a;t;c', '9at'], ['actg;ac;actg;actg;actg;ct', '2a134'], ['actg;ac', '2a134']]
 
-# %%
-new_rules = [
-    (";".join(''.join(sorted(ch)) for ch in pattern.split(';')), action)
-    for pattern, action in rules
-]
+# new_rules = [
+#     (";".join(''.join(sorted(ch)) for ch in pattern.split(';')), action)
+#     for pattern, action in rules
+# ]
 
-# %%
-for pattern, action in new_rules:
-    mute = Mutagen()
-    mute.add(pattern, action)
-    m = 10
+actionlist_history, memory = solve()
+print(actionlist_history)
+# print(memory)
+
+# for pattern, action in new_rules:
+#     mute = Mutagen()
+#     mute.add(pattern, action)
+#     m = 10
     
-    solve(mute, f"{pattern}@{action}")
-    print()
+#     solve(mute, f"{pattern}@{action}")
+#     print()
