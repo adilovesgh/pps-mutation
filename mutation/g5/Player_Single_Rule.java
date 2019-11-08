@@ -133,7 +133,7 @@ public class Player_Single_Rule extends mutation.sim.Player {
 //							Mutagen mutagen = new Mutagen();
 //							mutagen.add(modifiedPossibleRule.split("@")[0], modifiedPossibleRule.split("@")[1]);
 //							this.possibleMutagens.add(mutagen);
-//							if(console.Guess(mutagen))
+//							if(console.testEquiv(mutagen))
 //								return mutagen;
 //						}
 //					}
@@ -200,7 +200,7 @@ public class Player_Single_Rule extends mutation.sim.Player {
 				List<Mutagen> possibleMutagens = getPossibleMutagens(mutationSizeChosen);
 				this.possibleMutagens.addAll(possibleMutagens);
 				for(Mutagen mutagen : possibleMutagens) {
-					if(console.Guess(mutagen))
+					if(console.testEquiv(mutagen))
 						return mutagen;
 				}
 			}
@@ -704,8 +704,9 @@ public class Player_Single_Rule extends mutation.sim.Player {
 			}
 		}
 		List<String> actionStrings = new ArrayList<>();
-		getActionStringsForMultipleBases(actionElementsToAdd, actionStrings, "", 0);
-		//		System.out.println(actionElementsToAdd);
+		if(actionElementsToAdd.size() != 0)
+			getActionStringsForMultipleBases(actionElementsToAdd, actionStrings, "", 0);
+//				System.out.println(actionElementsToAdd);
 		for(String action : actionStrings) {
 			Mutagen mutagen = new Mutagen();
 			mutagen.add(pattern, action);
