@@ -10,12 +10,14 @@ public class Console {
 
     public Console(int limit, int m, Mutagen mutagen, boolean gui, HTTPServer server, String playerName, double refresh) {
         this.mutagen = mutagen;
+        this.listagen = new Listagen(mutagen);
         this.limit = limit;
         this.m = m;
         this.gui = gui;
         this.server = server;
         this.playerName = playerName;
         this.refresh = refresh;
+        this.lastGuess = new Mutagen();
 
         if (gui) {
             sendGUI(server, state("", "", String.join("@", mutagen.getPatterns()), String.join("@", mutagen.getActions()), "", "", ""));
@@ -37,12 +39,38 @@ public class Console {
         if (correct) return correct;
         ++ numGuesses;
         correct = mutagen.equals(other);
+        lastGuess.getPatterns().clear();
+        lastGuess.getActions().clear();
+        lastGuess.getPatterns().addAll(other.getPatterns());
+        lastGuess.getActions().addAll(other.getActions());
         if (gui) {
             String score = "";
             if (correct) score = "Correct!";
             sendGUI(server, state("", "", "", "", String.join("@", other.getPatterns()), String.join("@", other.getActions()), score));
         }
         return correct;
+    }
+
+    public boolean testEquiv(Mutagen other) {
+        if (correct) return correct;
+        ++ numGuesses;
+        correct = listagen.equals(new Listagen(other));
+        lastGuess.getPatterns().clear();
+        lastGuess.getActions().clear();
+        lastGuess.getPatterns().addAll(other.getPatterns());
+        lastGuess.getActions().addAll(other.getActions());
+        if (gui) {
+            String score = "";
+            if (correct) score = "Correct!";
+            sendGUI(server, state("", "", "", "", String.join("@", other.getPatterns()), String.join("@", other.getActions()), score));
+        }
+        return correct;
+    }
+
+    public int getNumExpsLeft() { return limit - numExps; }
+
+    public long getTimeLeft() {
+        return endTime - System.currentTimeMillis();
     }
 
     public int getNumGuesses() {
@@ -61,9 +89,17 @@ public class Console {
         return mutagen.getNumberOfMutations();
     }
 
+    public Mutagen getLastGuess() {
+        return lastGuess;
+    }
+
     public void reportScore(String patterns, String actions, String score) {
         if (gui)
             sendGUI(server, state("", "", "", "", patterns, actions, score));
+    }
+
+    public void setEndTime(long time) {
+        endTime = time;
     }
 
     private String state(String genome, String mutated, String tPatterns, String tActions, String patterns, String actions, String score) {
@@ -112,8 +148,10 @@ public class Console {
 
     private int numExps = 0, limit, m = 1, numGuesses = 0;
     private boolean correct = false, gui = false;
-    private Mutagen mutagen;
+    private Mutagen mutagen, lastGuess;
     private HTTPServer server;
     private String playerName;
     private double refresh;
+    private Listagen listagen;
+    private long endTime;
 }
