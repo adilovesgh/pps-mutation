@@ -28,7 +28,6 @@ public class Player extends mutation.sim.Player {
 	private List<Integer> numMutationsList = new ArrayList<>();
 	private List<Mutagen> mutagensGuessed = new ArrayList<>();
 	private List<IntervalArchive> intervalArchives = new ArrayList<>();
-	private Map<Integer, List<IntervalArchive>> multipleRuleTracker = new TreeMap<>();
 
 	public Player() { 
 		random = new Random();
@@ -49,6 +48,7 @@ public class Player extends mutation.sim.Player {
 		if(mutagensGuessed.size() == 0) {
 			setUpStructures();
 			int numBasesMutatedPerMutation = 0;
+			int totalNumMutations = 0;
 			for(int i = 0; i < 100; i++) {
 //				String genome = "tgccacggtctgttttgcatgcacctagttcgttttctggggcgttagacagactatgttgcttcaccccgaaccccaaatttatacatttctgcagttcccgtttgaatgtgctaatcggtaacatctgccttgtgacgcagaaggtatcaagctggaatgccacacggacactcgagcgctgatctcccgggttggatgacagcagtagaaagttaagggattgcgatggggcagcaaagtgtgagcaatggttagattcgatttcgcgtcccatttgaatgcacggtgaacgttttcacttagcaccgttatgggtgggaagtgtaggattttggatgggctgcatagcagtcgacgtcaccgtaaaatggaccgccgctatatatcggagatttaacgagccctagagaatggggattataacctatgtcagtcatccatattagacgactcgacgcgagaacctgtgattataggaatccgaacgagttcaaatccaaaaggcggtccgctcaaggccgcctcggctcccagactgtctaaaacgcctgtccctacagtgtcttattatcgcgacgtcattagggatgggaaggtgtacaggcgaaattaccgtggtacacaataaatcataatcctaggtgagcagcgcattctatgtgagtaactaggtgtctaaggtgacggtattgctacggatagggttggtgcggacgatgtgagctagttagtacgcagattgcgaacatttcccggcttacacggctcgagtcgtctggccggtagggaattcttatgtggataaagccgacagtatgcagaaaggttgcattagaaataattggacgcgggttcggtatcgcctcggcgtaacaagagatttatgataatcgtgggtacaaaagcaggtgtcccgggtctgtattgcatggttattcagtcaccaagggctaatatgaatggttgacacgagcacggaaataccagcacagtttca";
 				String genome = randomString();
@@ -58,14 +58,15 @@ public class Player extends mutation.sim.Player {
 
 				this.numMutations = console.getNumberOfMutations();
 				numMutationsList.add(numMutations);
+				totalNumMutations += numMutations;
 
 				int numBasesMutated = 0;
 				for(int j = 0; j < genome.length(); j++)
 					if(genome.charAt(j) != mutatedGenome.charAt(j))
 						numBasesMutated++;
 
-				numBasesMutatedPerMutation = (int) Math.ceil(numBasesMutated * 1.0 / numMutations);
-				computeWindowSizes(genome, mutatedGenome, numBasesMutatedPerMutation);
+				int iterNumBasesMutatedPerMutation = (int) Math.ceil(numBasesMutated * 1.0 / numMutations);
+				computeMutationSizes(genome, mutatedGenome, iterNumBasesMutatedPerMutation);
 
 				try {
 					Process process = Runtime.getRuntime().exec("python3 mutation/g5/Mutagen.py " + genome + " " + mutatedGenome + " " + numMutations);
@@ -81,6 +82,8 @@ public class Player extends mutation.sim.Player {
 						intervalObj.mutatedGenome = mutatedGenome;					
 						String intervalString = line.substring(1, line.length() - 1);
 						String[] intervalElements = intervalString.split(", ");
+						if(line.contains("[]"))
+							continue;
 						for(int j = 0; j < intervalElements.length; j += 2) {
 							int x = Integer.parseInt(intervalElements[j].substring(1));
 							int y = Integer.parseInt(intervalElements[j + 1].substring(0, intervalElements[j + 1].length() - 1));
@@ -94,6 +97,8 @@ public class Player extends mutation.sim.Player {
 				} catch (IOException | InterruptedException e) {
 //					e.printStackTrace();
 				}
+
+				numBasesMutatedPerMutation = (int) Math.max(numBasesMutatedPerMutation, iterNumBasesMutatedPerMutation);        	
 			}
 
 			List<Mutagen> approach2Mutagens = new ArrayList<>();
@@ -139,6 +144,7 @@ public class Player extends mutation.sim.Player {
 
 			int mostLikelyMutationSize = numBasesMutatedPerMutation;
 			if(mostLikelyMutationSize != 1) {
+				System.out.println("Total number of mutations: " + totalNumMutations);
 				int prevMutationSize = 0;
 				int currMutationSize = numMatchesForMutationSizes.get(0);
 				mostLikelyMutationSize = 1;
@@ -209,7 +215,7 @@ public class Player extends mutation.sim.Player {
 		return mutagen;
 	}
 
-	private void computeWindowSizes(String genome, String mutatedGenome, int numBasesMutatedPerMutation) {
+	private void computeMutationSizes(String genome, String mutatedGenome, int numBasesMutatedPerMutation) {
 		for(int i = 1; i <= 10; i++) {
 			int numMatches = 0;
 			List<List<Integer>> matchesFound = new ArrayList<>();
@@ -757,7 +763,6 @@ public class Player extends mutation.sim.Player {
 		mutatedGenomes = new ArrayList<>();
 		intervalArchives = new ArrayList<>();
 		possibleMutagens = new ArrayList<>();
-		multipleRuleTracker = new TreeMap<>();
 	}
 	
 	private void setUpTrackers() {
