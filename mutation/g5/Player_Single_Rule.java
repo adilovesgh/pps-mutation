@@ -9,7 +9,7 @@ import java.util.*;
 import mutation.sim.Console;
 import mutation.sim.Mutagen;
 
-public class Player extends mutation.sim.Player {
+public class Player_Single_Rule extends mutation.sim.Player {
 
 	private Random random;
 	private Console console;
@@ -28,9 +28,8 @@ public class Player extends mutation.sim.Player {
 	private List<Integer> numMutationsList = new ArrayList<>();
 	private List<Mutagen> mutagensGuessed = new ArrayList<>();
 	private List<IntervalArchive> intervalArchives = new ArrayList<>();
-	private Map<Integer, List<IntervalArchive>> multipleRuleTracker = new TreeMap<>();
 
-	public Player() { 
+	public Player_Single_Rule() { 
 		random = new Random();
 	}
 
@@ -49,6 +48,7 @@ public class Player extends mutation.sim.Player {
 		if(mutagensGuessed.size() == 0) {
 			setUpStructures();
 			int numBasesMutatedPerMutation = 0;
+			int totalNumMutations = 0;
 			for(int i = 0; i < 100; i++) {
 //				String genome = "tgccacggtctgttttgcatgcacctagttcgttttctggggcgttagacagactatgttgcttcaccccgaaccccaaatttatacatttctgcagttcccgtttgaatgtgctaatcggtaacatctgccttgtgacgcagaaggtatcaagctggaatgccacacggacactcgagcgctgatctcccgggttggatgacagcagtagaaagttaagggattgcgatggggcagcaaagtgtgagcaatggttagattcgatttcgcgtcccatttgaatgcacggtgaacgttttcacttagcaccgttatgggtgggaagtgtaggattttggatgggctgcatagcagtcgacgtcaccgtaaaatggaccgccgctatatatcggagatttaacgagccctagagaatggggattataacctatgtcagtcatccatattagacgactcgacgcgagaacctgtgattataggaatccgaacgagttcaaatccaaaaggcggtccgctcaaggccgcctcggctcccagactgtctaaaacgcctgtccctacagtgtcttattatcgcgacgtcattagggatgggaaggtgtacaggcgaaattaccgtggtacacaataaatcataatcctaggtgagcagcgcattctatgtgagtaactaggtgtctaaggtgacggtattgctacggatagggttggtgcggacgatgtgagctagttagtacgcagattgcgaacatttcccggcttacacggctcgagtcgtctggccggtagggaattcttatgtggataaagccgacagtatgcagaaaggttgcattagaaataattggacgcgggttcggtatcgcctcggcgtaacaagagatttatgataatcgtgggtacaaaagcaggtgtcccgggtctgtattgcatggttattcagtcaccaagggctaatatgaatggttgacacgagcacggaaataccagcacagtttca";
 				String genome = randomString();
@@ -58,14 +58,15 @@ public class Player extends mutation.sim.Player {
 
 				this.numMutations = console.getNumberOfMutations();
 				numMutationsList.add(numMutations);
+				totalNumMutations += numMutations;
 
 				int numBasesMutated = 0;
 				for(int j = 0; j < genome.length(); j++)
 					if(genome.charAt(j) != mutatedGenome.charAt(j))
 						numBasesMutated++;
 
-				numBasesMutatedPerMutation = (int) Math.ceil(numBasesMutated * 1.0 / numMutations);
-				computeWindowSizes(genome, mutatedGenome, numBasesMutatedPerMutation);
+				int iterNumBasesMutatedPerMutation = (int) Math.ceil(numBasesMutated * 1.0 / numMutations);
+				computeWindowSizes(genome, mutatedGenome, iterNumBasesMutatedPerMutation);
 
 				try {
 					Process process = Runtime.getRuntime().exec("python3 mutation/g5/Mutagen.py " + genome + " " + mutatedGenome + " " + numMutations);
@@ -94,6 +95,8 @@ public class Player extends mutation.sim.Player {
 				} catch (IOException | InterruptedException e) {
 //					e.printStackTrace();
 				}
+
+				numBasesMutatedPerMutation = (int) Math.max(numBasesMutatedPerMutation, iterNumBasesMutatedPerMutation);        	
 			}
 
 			List<Mutagen> approach2Mutagens = new ArrayList<>();
@@ -139,6 +142,7 @@ public class Player extends mutation.sim.Player {
 
 			int mostLikelyMutationSize = numBasesMutatedPerMutation;
 			if(mostLikelyMutationSize != 1) {
+				System.out.println("Total number of mutations: " + totalNumMutations);
 				int prevMutationSize = 0;
 				int currMutationSize = numMatchesForMutationSizes.get(0);
 				mostLikelyMutationSize = 1;
@@ -757,7 +761,6 @@ public class Player extends mutation.sim.Player {
 		mutatedGenomes = new ArrayList<>();
 		intervalArchives = new ArrayList<>();
 		possibleMutagens = new ArrayList<>();
-		multipleRuleTracker = new TreeMap<>();
 	}
 	
 	private void setUpTrackers() {
