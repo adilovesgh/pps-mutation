@@ -62,6 +62,7 @@ public class Player extends mutation.sim.Player {
 			int totalNumBasesMutated = 0;
 			List<Mutagen> approach2Mutagens = new ArrayList<>();
 			int prevIterationError = 0;
+			int errorCount = 0;
 			for(int i = 0; i < 100; i++) {
 				//				String genome = "tgccacggtctgttttgcatgcacctagttcgttttctggggcgttagacagactatgttgcttcaccccgaaccccaaatttatacatttctgcagttcccgtttgaatgtgctaatcggtaacatctgccttgtgacgcagaaggtatcaagctggaatgccacacggacactcgagcgctgatctcccgggttggatgacagcagtagaaagttaagggattgcgatggggcagcaaagtgtgagcaatggttagattcgatttcgcgtcccatttgaatgcacggtgaacgttttcacttagcaccgttatgggtgggaagtgtaggattttggatgggctgcatagcagtcgacgtcaccgtaaaatggaccgccgctatatatcggagatttaacgagccctagagaatggggattataacctatgtcagtcatccatattagacgactcgacgcgagaacctgtgattataggaatccgaacgagttcaaatccaaaaggcggtccgctcaaggccgcctcggctcccagactgtctaaaacgcctgtccctacagtgtcttattatcgcgacgtcattagggatgggaaggtgtacaggcgaaattaccgtggtacacaataaatcataatcctaggtgagcagcgcattctatgtgagtaactaggtgtctaaggtgacggtattgctacggatagggttggtgcggacgatgtgagctagttagtacgcagattgcgaacatttcccggcttacacggctcgagtcgtctggccggtagggaattcttatgtggataaagccgacagtatgcagaaaggttgcattagaaataattggacgcgggttcggtatcgcctcggcgtaacaagagatttatgataatcgtgggtacaaaagcaggtgtcccgggtctgtattgcatggttattcagtcaccaagggctaatatgaatggttgacacgagcacggaaataccagcacagtttca";
 				String genome = randomString();
@@ -73,30 +74,34 @@ public class Player extends mutation.sim.Player {
 				numMutationsList.add(numMutations);
 				totalNumMutations += numMutations;
 	
-				//				try {
-				//					Process process2 = Runtime.getRuntime().exec("python3 mutation/g5/approach.py " + genome + " " + mutatedGenome + " " + numMutations + " " + i + " " + m + " 0");
-				//					if(!process2.waitFor(30, TimeUnit.SECONDS))
-				//						prevIterationError = 1;
-				//					else {
-				//						prevIterationError = 0;
-				//						InputStream is2 = process2.getInputStream();
-				//						BufferedReader br2 = new BufferedReader(new InputStreamReader(is2));
-				//						String l;
-				//						while((l = br2.readLine()) != null) {
-				//							Mutagen mutagen = new Mutagen();
-				//							mutagen.add(l.split("@")[0], l.split("@")[1]);
-				//							this.possibleMutagens.add(mutagen);
-				//							if(!mutagensGuessed.contains(mutagen) && console.testEquiv(mutagen))
-				//								return mutagen;
-				//							mutagensGuessed.add(mutagen);
-				//						}			
-				//						br2.close();
-				//						is2.close();
-				//					}
-				//					process2.destroy();
-				//				} catch (Exception e) {
-				//					e.printStackTrace();
-				//				}
+				if(errorCount <= 5) {
+					try {
+						Process process2 = Runtime.getRuntime().exec("python3 mutation/g5/approach.py " + genome + " " + mutatedGenome + " " + numMutations + " " + i + " " + m + " 0");
+						if(!process2.waitFor(20, TimeUnit.SECONDS)) {
+							prevIterationError = 1;
+							errorCount++;
+						}
+						else {
+							prevIterationError = 0;
+							InputStream is2 = process2.getInputStream();
+							BufferedReader br2 = new BufferedReader(new InputStreamReader(is2));
+							String l;
+							while((l = br2.readLine()) != null) {
+								Mutagen mutagen = new Mutagen();
+								mutagen.add(l.split("@")[0], l.split("@")[1]);
+								this.possibleMutagens.add(mutagen);
+								if(!mutagensGuessed.contains(mutagen) && console.testEquiv(mutagen))
+									return mutagen;
+								mutagensGuessed.add(mutagen);
+							}
+							br2.close();
+							is2.close();
+						}
+						process2.destroy();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
 	
 				int numBasesMutated = 0;
 				for(int j = 0; j < genome.length(); j++)
