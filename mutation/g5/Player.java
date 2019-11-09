@@ -27,7 +27,8 @@ public class Player extends mutation.sim.Player {
 	private List<Map<Character, Integer>> actionTracker = new ArrayList<>();
 	private static final int DISTANCE_THRESHOLD_SB = 12;
 	private static final double PERCENTAGE_DISTANCE_THRESHOLD_MB = 0.15; 
-	private static final int NONEXISTENT_BASE_THRESHOLD = 20;
+	private static final int NONEXISTENT_BASE_THRESHOLD = 50;
+	private static final double PERCENT_NONEXISTENT_BASE_THRESHOLD = 0.05;
 	private static final double PERCENTAGE_MUTATION_SIZE_DELTA_THRESHOLD = 0.25;
 	private List<Integer> numMatchesForMutationSizes = new ArrayList<>();
 	private List<Mutagen> possibleMutagens = new ArrayList<>();
@@ -222,10 +223,10 @@ public class Player extends mutation.sim.Player {
 					mutagen.add(mutagenMax.getPatterns().get(0), mutagenMax.getActions().get(0));
 					mutagen.add(mutagenSecondMax.getPatterns().get(0), mutagenSecondMax.getActions().get(0));
 					twoRuleMutagens12.add(mutagen);
-					System.out.println("**************************************************");
-					for(int i = 0; i < mutagen.getPatterns().size(); i++)
-						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
-					System.out.println("**************************************************");
+//					System.out.println("**************************************************");
+//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
+//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
+//					System.out.println("**************************************************");
 				}
 			}
 			twoRuleMutagens.addAll(twoRuleMutagens12);
@@ -237,10 +238,10 @@ public class Player extends mutation.sim.Player {
 					mutagen.add(mutagenMax.getPatterns().get(0), mutagenMax.getActions().get(0));
 					mutagen.add(mutagenThirdMax.getPatterns().get(0), mutagenThirdMax.getActions().get(0));
 					twoRuleMutagens12.add(mutagen);
-					System.out.println("**************************************************");
-					for(int i = 0; i < mutagen.getPatterns().size(); i++)
-						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
-					System.out.println("**************************************************");
+//					System.out.println("**************************************************");
+//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
+//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
+//					System.out.println("**************************************************");
 				}
 			}
 			twoRuleMutagens.addAll(twoRuleMutagens13);
@@ -252,10 +253,10 @@ public class Player extends mutation.sim.Player {
 					mutagen.add(mutagenSecondMax.getPatterns().get(0), mutagenSecondMax.getActions().get(0));
 					mutagen.add(mutagenThirdMax.getPatterns().get(0), mutagenThirdMax.getActions().get(0));
 					twoRuleMutagens23.add(mutagen);
-					System.out.println("**************************************************");
-					for(int i = 0; i < mutagen.getPatterns().size(); i++)
-						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
-					System.out.println("**************************************************");
+//					System.out.println("**************************************************");
+//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
+//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
+//					System.out.println("**************************************************");
 				}
 			}
 			twoRuleMutagens.addAll(twoRuleMutagens23);
@@ -274,10 +275,10 @@ public class Player extends mutation.sim.Player {
 						mutagen.add(mutagenSecondMax.getPatterns().get(0), mutagenSecondMax.getActions().get(0));
 						mutagen.add(mutagenThirdMax.getPatterns().get(0), mutagenThirdMax.getActions().get(0));
 						threeRuleMutagens.add(mutagen);
-						System.out.println("**************************************************");
-						for(int i = 0; i < mutagen.getPatterns().size(); i++)
-							System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
-						System.out.println("**************************************************");
+//						System.out.println("**************************************************");
+//						for(int i = 0; i < mutagen.getPatterns().size(); i++)
+//							System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
+//						System.out.println("**************************************************");
 					}
 				}
 			}
@@ -356,7 +357,7 @@ public class Player extends mutation.sim.Player {
 	}
 
 	private List<Mutagen> getOneBaseMutationMutagens() {
-
+		
 		System.out.println("Action tracker: ");
 		for(int j = 0; j < actionTracker.size(); j++)
 			System.out.println("  " + j + ". " + actionTracker.get(j));
@@ -370,8 +371,11 @@ public class Player extends mutation.sim.Player {
 		for(int i = 0; i < patternTracker.size(); i++) {
 			Map<Character, Integer> patternOccurrences = patternTracker.get(i);
 			List<String> interestingPattern = new ArrayList<>();
+			int totalCharacters = 0;
+			for(Character character : patternOccurrences.keySet())
+				totalCharacters += patternOccurrences.get(character);
 			for(Character character : patternOccurrences.keySet()) {
-				if(patternOccurrences.get(character) > (NONEXISTENT_BASE_THRESHOLD * m * 1.0 / 15))
+				if((patternOccurrences.get(character) * 1.0 / totalCharacters) > PERCENT_NONEXISTENT_BASE_THRESHOLD)
 					interestingPattern.add(character + "");
 			}
 			if(interestingPattern.size() != 4) {
@@ -615,8 +619,11 @@ public class Player extends mutation.sim.Player {
 			if(!(letter = getLetterMutationForMultipleBases(patternOccurrences) + "").equals("x"))
 				interestingPattern.add(letter);
 			else {
+				int totalCharacters = 0;
+				for(Character character : patternOccurrences.keySet())
+					totalCharacters += patternOccurrences.get(character);
 				for(Character character : patternOccurrences.keySet()) {
-					if(patternOccurrences.get(character) > (NONEXISTENT_BASE_THRESHOLD * m * 1.0 / 15))
+					if((patternOccurrences.get(character) * 1.0 / totalCharacters) > PERCENT_NONEXISTENT_BASE_THRESHOLD)
 						interestingPattern.add(character + "");
 				}
 			}
