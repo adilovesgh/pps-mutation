@@ -15,7 +15,6 @@ import javafx.util.Pair;
 import mutation.sim.Console;
 import mutation.sim.Log;
 import mutation.sim.Mutagen;
-import mutation.sim.Timer;
 
 public class Player extends mutation.sim.Player {
 
@@ -54,9 +53,9 @@ public class Player extends mutation.sim.Player {
 
 	@Override
 	public Mutagen Play(Console console, int m) {
-		this.m = m;
-		this.console = console;
-		if(mutagensGuessed.size() == 0) {
+		while(true) {
+			this.m = m;
+			this.console = console;
 			setUpStructures();
 			int numBasesMutatedPerMutation = 0;
 			int totalNumMutations = 0;
@@ -69,44 +68,45 @@ public class Player extends mutation.sim.Player {
 				String mutatedGenome = console.Mutate(genome);
 				genomes.add(genome);
 				mutatedGenomes.add(mutatedGenome);
-
+	
 				this.numMutations = console.getNumberOfMutations();
 				numMutationsList.add(numMutations);
 				totalNumMutations += numMutations;
-
-				try {
-					Process process2 = Runtime.getRuntime().exec("python3 mutation/g5/approach.py " + genome + " " + mutatedGenome + " " + numMutations + " " + i + " " + m + " 0");
-					if(!process2.waitFor(30, TimeUnit.SECONDS))
-						prevIterationError = 1;
-					else {
-						prevIterationError = 0;
-						InputStream is2 = process2.getInputStream();
-						BufferedReader br2 = new BufferedReader(new InputStreamReader(is2));
-						String l;
-						while((l = br2.readLine()) != null) {
-							Mutagen mutagen = new Mutagen();
-							mutagen.add(l.split("@")[0], l.split("@")[1]);
-							this.possibleMutagens.add(mutagen);
-							if(console.testEquiv(mutagen))
-								return mutagen;
-						}			
-						br2.close();
-						is2.close();
-					}
-					process2.destroy();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-
+	
+				//				try {
+				//					Process process2 = Runtime.getRuntime().exec("python3 mutation/g5/approach.py " + genome + " " + mutatedGenome + " " + numMutations + " " + i + " " + m + " 0");
+				//					if(!process2.waitFor(30, TimeUnit.SECONDS))
+				//						prevIterationError = 1;
+				//					else {
+				//						prevIterationError = 0;
+				//						InputStream is2 = process2.getInputStream();
+				//						BufferedReader br2 = new BufferedReader(new InputStreamReader(is2));
+				//						String l;
+				//						while((l = br2.readLine()) != null) {
+				//							Mutagen mutagen = new Mutagen();
+				//							mutagen.add(l.split("@")[0], l.split("@")[1]);
+				//							this.possibleMutagens.add(mutagen);
+				//							if(!mutagensGuessed.contains(mutagen) && console.testEquiv(mutagen))
+				//								return mutagen;
+				//							mutagensGuessed.add(mutagen);
+				//						}			
+				//						br2.close();
+				//						is2.close();
+				//					}
+				//					process2.destroy();
+				//				} catch (Exception e) {
+				//					e.printStackTrace();
+				//				}
+	
 				int numBasesMutated = 0;
 				for(int j = 0; j < genome.length(); j++)
 					if(genome.charAt(j) != mutatedGenome.charAt(j))
 						numBasesMutated++;
-
+	
 				//				System.out.println("Number of mutations: " + numMutations + ", number of bases mutated: " + numBasesMutated);
 				totalNumBasesMutated += numBasesMutated;
 				numBasesMutatedPerMutation = (int) Math.max(numBasesMutatedPerMutation, Math.ceil(numBasesMutated * 1.0 / numMutations));
-
+	
 				List<Pair<Integer, Integer>> intervals = findIntervals(genome, mutatedGenome, numMutations);
 				for(Pair<Integer, Integer> interval : intervals) {
 					IntervalArchive intervalObj = new IntervalArchive();
@@ -131,13 +131,13 @@ public class Player extends mutation.sim.Player {
 				System.out.println("Number of intervals of size " + key + ": " + intervalSizeTracker.get(key));
 			}
 			System.out.println();
-
+	
 			//			for(Integer key : multipleRuleTracker.keySet()) {
 			//				System.out.println("Number of experiments of size " + key + ": " + multipleRuleTracker.get(key).size());
 			//			}
 			//			System.out.println();
-
-
+	
+	
 			int maxNumIntervals = -1;
 			int secondMaxNumIntervals = -1;
 			int thirdMaxNumIntervals = -1;
@@ -168,7 +168,7 @@ public class Player extends mutation.sim.Player {
 			System.out.println("Max number of intervals - Size: " + intervalSizeMax + ", number of intervals: " + intervalSizeTracker.get(intervalSizeMax));
 			System.out.println("2nd max number of intervals - Size: " + intervalSizeSecondMax + ", number of intervals: " + intervalSizeTracker.get(intervalSizeSecondMax));
 			System.out.println("3rd max number of intervals - Size: " + intervalSizeThirdMax + ", number of intervals: " + intervalSizeTracker.get(intervalSizeThirdMax));
-
+	
 			List<Mutagen> possMutagensForMax = new ArrayList<>();
 			List<Mutagen> possMutagensForSecondMax = new ArrayList<>();
 			List<Mutagen> possMutagensForThirdMax = new ArrayList<>();
@@ -181,8 +181,9 @@ public class Player extends mutation.sim.Player {
 					for(int i = 0; i < mutagen.getPatterns().size(); i++)
 						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
 					System.out.println("**************************************************");
-					if(console.testEquiv(mutagen))
+					if(!mutagensGuessed.contains(mutagen) && console.testEquiv(mutagen))
 						return mutagen;
+					mutagensGuessed.add(mutagen);
 				}
 				this.possibleMutagens.addAll(possMutagensForMax);
 			}
@@ -195,8 +196,9 @@ public class Player extends mutation.sim.Player {
 					for(int i = 0; i < mutagen.getPatterns().size(); i++)
 						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
 					System.out.println("**************************************************");
-					if(console.testEquiv(mutagen))
+					if(!mutagensGuessed.contains(mutagen) && console.testEquiv(mutagen))
 						return mutagen;
+					mutagensGuessed.add(mutagen);
 				}
 				this.possibleMutagens.addAll(possMutagensForSecondMax);
 			}
@@ -209,12 +211,13 @@ public class Player extends mutation.sim.Player {
 					for(int i = 0; i < mutagen.getPatterns().size(); i++)
 						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
 					System.out.println("**************************************************");
-					if(console.testEquiv(mutagen))
+					if(!mutagensGuessed.contains(mutagen) && console.testEquiv(mutagen))
 						return mutagen;
+					mutagensGuessed.add(mutagen);
 				}
 				this.possibleMutagens.addAll(possMutagensForThirdMax);
 			}
-
+	
 			List<Mutagen> twoRuleMutagens = new ArrayList<>();
 			List<Mutagen> twoRuleMutagens12 = new ArrayList<>();
 			for(Mutagen mutagenMax : possMutagensForMax) {
@@ -223,14 +226,14 @@ public class Player extends mutation.sim.Player {
 					mutagen.add(mutagenMax.getPatterns().get(0), mutagenMax.getActions().get(0));
 					mutagen.add(mutagenSecondMax.getPatterns().get(0), mutagenSecondMax.getActions().get(0));
 					twoRuleMutagens12.add(mutagen);
-//					System.out.println("**************************************************");
-//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
-//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
-//					System.out.println("**************************************************");
+					//					System.out.println("**************************************************");
+					//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
+					//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
+					//					System.out.println("**************************************************");
 				}
 			}
 			twoRuleMutagens.addAll(twoRuleMutagens12);
-
+	
 			List<Mutagen> twoRuleMutagens13 = new ArrayList<>();
 			for(Mutagen mutagenMax : possMutagensForMax) {
 				for(Mutagen mutagenThirdMax : possMutagensForThirdMax) {
@@ -238,14 +241,14 @@ public class Player extends mutation.sim.Player {
 					mutagen.add(mutagenMax.getPatterns().get(0), mutagenMax.getActions().get(0));
 					mutagen.add(mutagenThirdMax.getPatterns().get(0), mutagenThirdMax.getActions().get(0));
 					twoRuleMutagens12.add(mutagen);
-//					System.out.println("**************************************************");
-//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
-//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
-//					System.out.println("**************************************************");
+					//					System.out.println("**************************************************");
+					//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
+					//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
+					//					System.out.println("**************************************************");
 				}
 			}
 			twoRuleMutagens.addAll(twoRuleMutagens13);
-
+	
 			List<Mutagen> twoRuleMutagens23 = new ArrayList<>();
 			for(Mutagen mutagenSecondMax : possMutagensForSecondMax) {
 				for(Mutagen mutagenThirdMax : possMutagensForThirdMax) {
@@ -253,19 +256,21 @@ public class Player extends mutation.sim.Player {
 					mutagen.add(mutagenSecondMax.getPatterns().get(0), mutagenSecondMax.getActions().get(0));
 					mutagen.add(mutagenThirdMax.getPatterns().get(0), mutagenThirdMax.getActions().get(0));
 					twoRuleMutagens23.add(mutagen);
-//					System.out.println("**************************************************");
-//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
-//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
-//					System.out.println("**************************************************");
+					//					System.out.println("**************************************************");
+					//					for(int i = 0; i < mutagen.getPatterns().size(); i++)
+					//						System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
+					//					System.out.println("**************************************************");
 				}
 			}
 			twoRuleMutagens.addAll(twoRuleMutagens23);
-
-			for(Mutagen mutagen : twoRuleMutagens)
-				if(console.testEquiv(mutagen))
-					return mutagen;			
+	
+			for(Mutagen mutagen : twoRuleMutagens) {
+				if(!mutagensGuessed.contains(mutagen) && console.testEquiv(mutagen))
+					return mutagen;
+				mutagensGuessed.add(mutagen);
+			}
 			this.possibleMutagens.addAll(twoRuleMutagens);
-
+	
 			List<Mutagen> threeRuleMutagens = new ArrayList<>();
 			for(Mutagen mutagenMax : possMutagensForMax) {
 				for(Mutagen mutagenSecondMax : possMutagensForSecondMax) {
@@ -275,52 +280,52 @@ public class Player extends mutation.sim.Player {
 						mutagen.add(mutagenSecondMax.getPatterns().get(0), mutagenSecondMax.getActions().get(0));
 						mutagen.add(mutagenThirdMax.getPatterns().get(0), mutagenThirdMax.getActions().get(0));
 						threeRuleMutagens.add(mutagen);
-//						System.out.println("**************************************************");
-//						for(int i = 0; i < mutagen.getPatterns().size(); i++)
-//							System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
-//						System.out.println("**************************************************");
+						//						System.out.println("**************************************************");
+						//						for(int i = 0; i < mutagen.getPatterns().size(); i++)
+						//							System.out.println(mutagen.getPatterns().get(i) + "@" + mutagen.getActions().get(i));
+						//						System.out.println("**************************************************");
 					}
 				}
 			}
-			for(Mutagen mutagen : threeRuleMutagens)
-				if(console.testEquiv(mutagen))
+			for(Mutagen mutagen : threeRuleMutagens) {
+				if(!mutagensGuessed.contains(mutagen) && console.testEquiv(mutagen))
 					return mutagen;
-			this.possibleMutagens.addAll(threeRuleMutagens);
-
-			if(maxNumIntervals >= 100 && secondMaxNumIntervals < 100 && thirdMaxNumIntervals < 100)
-				if(possMutagensForMax.size() > 0)
-					return possMutagensForMax.get(0);
-			if(maxNumIntervals < 100 && secondMaxNumIntervals >= 100 && thirdMaxNumIntervals < 100)
-				if(possMutagensForSecondMax.size() > 0)
-					return possMutagensForSecondMax.get(0);
-			if(maxNumIntervals < 100 && secondMaxNumIntervals < 100 && thirdMaxNumIntervals >= 100)
-				if(possMutagensForThirdMax.size() > 0)
-					return possMutagensForThirdMax.get(0);
-			if(maxNumIntervals >= 100 && secondMaxNumIntervals >= 100 && thirdMaxNumIntervals < 100)
-				if(twoRuleMutagens12.size() > 0)
-					return twoRuleMutagens12.get(0);
-			if(maxNumIntervals >= 100 && secondMaxNumIntervals < 100 && thirdMaxNumIntervals >= 100)
-				if(twoRuleMutagens13.size() > 0)
-					return twoRuleMutagens13.get(0);
-			if(maxNumIntervals < 100 && secondMaxNumIntervals >= 100 && thirdMaxNumIntervals >= 100)
-				if(twoRuleMutagens23.size() > 0)
-					return twoRuleMutagens23.get(0);
-			if(maxNumIntervals >= 100 && secondMaxNumIntervals >= 100 && thirdMaxNumIntervals >= 100)
-				if(threeRuleMutagens.size() > 0)
-					return threeRuleMutagens.get(0);
-		}
-
-		for(Mutagen mutagen : this.possibleMutagens) {
-			if(!mutagensGuessed.contains(mutagen)) {
 				mutagensGuessed.add(mutagen);
-				return mutagen;
 			}
-		}
+			this.possibleMutagens.addAll(threeRuleMutagens);
+	
+	//		if(maxNumIntervals >= 100 && secondMaxNumIntervals < 100 && thirdMaxNumIntervals < 100)
+	//			if(possMutagensForMax.size() > 0)
+	//				return possMutagensForMax.get(0);
+	//		if(maxNumIntervals < 100 && secondMaxNumIntervals >= 100 && thirdMaxNumIntervals < 100)
+	//			if(possMutagensForSecondMax.size() > 0)
+	//				return possMutagensForSecondMax.get(0);
+	//		if(maxNumIntervals < 100 && secondMaxNumIntervals < 100 && thirdMaxNumIntervals >= 100)
+	//			if(possMutagensForThirdMax.size() > 0)
+	//				return possMutagensForThirdMax.get(0);
+	//		if(maxNumIntervals >= 100 && secondMaxNumIntervals >= 100 && thirdMaxNumIntervals < 100)
+	//			if(twoRuleMutagens12.size() > 0)
+	//				return twoRuleMutagens12.get(0);
+	//		if(maxNumIntervals >= 100 && secondMaxNumIntervals < 100 && thirdMaxNumIntervals >= 100)
+	//			if(twoRuleMutagens13.size() > 0)
+	//				return twoRuleMutagens13.get(0);
+	//		if(maxNumIntervals < 100 && secondMaxNumIntervals >= 100 && thirdMaxNumIntervals >= 100)
+	//			if(twoRuleMutagens23.size() > 0)
+	//				return twoRuleMutagens23.get(0);
+	//		if(maxNumIntervals >= 100 && secondMaxNumIntervals >= 100 && thirdMaxNumIntervals >= 100)
+	//			if(threeRuleMutagens.size() > 0)
+	//				return threeRuleMutagens.get(0);
 
-		Mutagen mutagen = new Mutagen();
-		mutagen.add("a;c;c", "att");
-		mutagen.add("g;c;c", "gtt");
-		return mutagen;
+		}
+		
+//		for(Mutagen mutagen : this.possibleMutagens)
+//			return mutagen;
+//
+//		
+//		Mutagen mutagen = new Mutagen();
+//		mutagen.add("a;c;c", "att");
+//		mutagen.add("g;c;c", "gtt");
+//		return mutagen;
 	}
 
 	public ArrayList<Pair<Integer, Integer>> findIntervals(String genome, String result, Integer mp){
@@ -357,7 +362,7 @@ public class Player extends mutation.sim.Player {
 	}
 
 	private List<Mutagen> getOneBaseMutationMutagens() {
-		
+
 		System.out.println("Action tracker: ");
 		for(int j = 0; j < actionTracker.size(); j++)
 			System.out.println("  " + j + ". " + actionTracker.get(j));
